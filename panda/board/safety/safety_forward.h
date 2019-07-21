@@ -10,7 +10,7 @@ static void forward_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   int addr = GET_ADDR(to_push);
   
   // Rest everything if forwarding stopped and 3 camera msgs did not show in car bus
-  if ((enabled = 0) && (hyundai_camera_cnt >= 3)) {
+  if ((enabled != 1) && (hyundai_camera_cnt >= 3)) {
     hyundai_camera_detected = 0;
     hyundai_giraffe_switch_2 = 0;
     hyundai_camera_cnt = 1;
