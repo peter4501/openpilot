@@ -96,8 +96,6 @@ void started_interrupt_init(void) {
 
 // ***************************** USB port *****************************
 
-int usb_live = 0;
-
 int get_health_pkt(void *dat) {
   struct __attribute__((packed)) {
     uint32_t voltage;
@@ -142,7 +140,6 @@ int get_health_pkt(void *dat) {
 }
 
 int usb_cb_ep1_in(uint8_t *usbdata, int len, bool hardwired) {
-  usb_live = 1;
   UNUSED(hardwired);
   CAN_FIFOMailBox_TypeDef *reply = (CAN_FIFOMailBox_TypeDef *)usbdata;
   int ilen = 0;
@@ -154,7 +151,6 @@ int usb_cb_ep1_in(uint8_t *usbdata, int len, bool hardwired) {
 
 // send on serial, first byte to select the ring
 void usb_cb_ep2_out(uint8_t *usbdata, int len, bool hardwired) {
-  usb_live = 1;
   UNUSED(hardwired);
   uart_ring *ur = get_ring_by_number(usbdata[0]);
   if ((len != 0) && (ur != NULL)) {
@@ -170,7 +166,6 @@ void usb_cb_ep2_out(uint8_t *usbdata, int len, bool hardwired) {
 
 // send on CAN
 void usb_cb_ep3_out(uint8_t *usbdata, int len, bool hardwired) {
-  usb_live = 1;
   UNUSED(hardwired);
   int dpkt = 0;
   for (dpkt = 0; dpkt < len; dpkt += 0x10) {
@@ -191,13 +186,11 @@ void usb_cb_ep3_out(uint8_t *usbdata, int len, bool hardwired) {
 bool is_enumerated = 0;
 
 void usb_cb_enumeration_complete() {
-  usb_live = 1;
   puts("USB enumeration complete\n");
   is_enumerated = 1;
 }
 
 int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) {
-  usb_live = 1;
   int resp_len = 0;
   uart_ring *ur = NULL;
   int i;
@@ -621,12 +614,11 @@ void TIM3_IRQHandler(void) {
     // reset this every 2nd pass
     if ((tcnt&0x2) == 0) {
       // check if usb connection is active, attempt forwarding if not
-      if (usb_live == 0 && current_safety_mode != SAFETY_FORWARD) {
+      if (current_safety_mode == SAFETY_NOOUTPUT) {
         safety_set_mode(SAFETY_FORWARD, 0);
         // leave can_silent in it's current state.  Fingerprinting will work with ALL_CAN_SILENT
         can_init_all();
       }
-      usb_live = 0;
     }
     
     #ifdef DEBUG
